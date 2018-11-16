@@ -10,10 +10,10 @@ public class Main
 	public Main() {
 		//fileUrl = getClass().getResource("data.txt");
 	}
-    public static void main(String[] args) throws IOException
+    public static void main(String[] args) throws IOException, InterruptedException
     {
         String[] topics = {"tennis", "grand slam"};
-        WikiCrawler w = new WikiCrawler("/wiki/Tropical_Depression_Ten_(2005)", topics, 70, "src\\data.txt", true);
+        WikiCrawler w = new WikiCrawler("/wiki/Tropical_Depression_Ten_(2005)", topics, 10, "src\\data.txt", false);
         try {
 			w.crawl();
 		} catch (IOException e) {

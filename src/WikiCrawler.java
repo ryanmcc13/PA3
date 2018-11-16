@@ -24,6 +24,7 @@ public class WikiCrawler
     String root;
     ArrayList<String> nonoList;
     int count;
+    String[][] words;
     public static final String BASE_URL="https://en.wikipedia.org";
     public WikiCrawler (String seedUrl, String[] keywords, int max, String filename, Boolean isTopicSensitive)
     {
@@ -41,7 +42,7 @@ public class WikiCrawler
 
     
     
-    public void crawl() throws IOException
+    public void crawl() throws IOException, InterruptedException
     {
     	Robots robot = new Robots();
     	nonoList = robot.parseRobots();
@@ -54,13 +55,17 @@ public class WikiCrawler
     	System.out.println(max);
 		root = seedUrl;
 		URL url = new URL(BASE_URL+seedUrl);
+		int requestCount = 1;
 		parsePage(url);
     	while(q.head!=null && max > 0) {
     		root = (String) q.extract();
             url = new URL(BASE_URL+root);
     		parsePage(url);
-    		max--;
-            
+    		requestCount++;
+    		if(requestCount >= 10) {
+    			Thread.sleep(2000);
+    			requestCount = 0;
+    		}
     	}
     }
     
@@ -70,12 +75,25 @@ public class WikiCrawler
         { 
             InputStream is = url.openStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            String input = findP(br);
-            //some wikipedia pages apparently don't have this need to identify a new end point
-            while(!input.contains("id=\"References\""))
+            String input; 
+            while(!((input=br.readLine()).contains("<p>")))
+            {}
+            hasLink(input);
+            if(max == 0) {
+            	return;
+            }
+            if(isTopicSensitive) {
+            	while((input=br.readLine())!=null)
+                {
+            		
+                }
+        	}
+            while((input=br.readLine())!=null)
             {
                 hasLink(input);
-                input=br.readLine();
+                if(max == 0) {
+                	return;
+                }
             }
         }
         catch (IOException e)
@@ -85,14 +103,14 @@ public class WikiCrawler
         }
     }
 
-    public String findP(BufferedReader br) throws IOException
+    public void findP(BufferedReader br) throws IOException
     {
-        String input=br.readLine();
-        while(!input.contains("<p>"))
+        String input;
+        while(!((input=br.readLine()).contains("<p>")))
         {
-            input=br.readLine();
+
         }
-        return input;
+        hasLink(input);
     }
 
     public void hasLink(String line) throws IOException
@@ -106,14 +124,18 @@ public class WikiCrawler
                 {
                     isolateText(arr[i]);
                 }
+                if(max == 0) {
+                	return;
+                }
             }
         }
     }
 
     public void isolateText(String s) throws IOException
     {
-        String trimmed = s.split("\"")[0];
-        if(trimmed.contains("#") || trimmed.contains(":"))
+    	String[] text = s.split("\"");
+    	String trimmed = text[0];
+        if(trimmed.contains("#") || trimmed.contains(":") || trimmed.equals(root))
         {
             return;
         }
@@ -124,14 +146,42 @@ public class WikiCrawler
         }
         if(trimmed.contains("/wiki/")) {
         	visited.add(trimmed);
-            q.add(trimmed, 0);
+        	if(!isTopicSensitive) {
+        		q.add(trimmed, 1);
+        	}else {
+        		q.add(trimmed, weight(trimmed, text[2]));
+        	}
             BufferedWriter writer = new BufferedWriter(new FileWriter(file,true));
             writer.newLine();
             writer.write(root + " " + trimmed);
             writer.close();
             count++;
             System.out.println(root + " " + trimmed+ " " + count);
+            max--;
         }
+    }
+    
+    public double weight(String link, String anchor) {
+    	if(keywords != null && keywords.length>0) {
+    		for(int i = 0; i< keywords.length; i++) {
+    			if(link.contains(keywords[i])||anchor.contains(keywords[i])) {
+    				return 1;
+    			}
+    		}
+    		//assuming global variable 2d string array called words
+    		int d;
+    		for(int i = 0; i < 18; i++) {
+    			for(int j = 0; j< keywords.length; j++) {
+    				if(words[i][0].contains(keywords[j])){
+    					return (1/(i+2));
+    					//2nd dimension of 2d array starts with 1 so they don't overlap
+    				}else if(words[0][i + 1].contains(keywords[j])){
+    					return (1/(i+2));
+    				}
+    			}
+    		}
+    	}
+    	return 0;
     }
 
 }
