@@ -5,16 +5,47 @@ public class WeightedQ<T>
 
     Node<T> head;
     Node<T> tail;
-    int highest;
-
+    int size=0;
 
     public WeightedQ()
     {}
 
     //right now it replaces but keeps the same spot in the list
-    public void add(T tuple)
+    public void add(T data, double weight)
     {
+        Node<T> newNode = new Node<T>(data, weight);
+        Node<T> cur = this.tail;
 
+        while(cur != null)
+        {
+            if(cur.weight >= weight)
+            {
+                newNode.next = cur.next;
+                newNode.prev = cur;
+                cur.next = newNode;
+                break;
+            }
+            cur = cur.prev;
+        }
+
+        if(cur == null)
+        {
+            newNode.next = this.head;
+            if(this.head != null)
+                this.head.prev = newNode;
+            this.head = newNode;
+        }
+
+        if(cur == this.tail)
+        {
+            this.tail = newNode;
+        }
+        size++;
+    }
+
+    public int size()
+    {
+        return this.size;
     }
 
     public T extract()
@@ -23,8 +54,23 @@ public class WeightedQ<T>
             return null;
         T ans = this.head.data;
         this.head = this.head.next;
-        this.head.prev = null;
+        if(this.head != null)
+            this.head.prev = null;
+        this.size--;
         return ans;
+    }
+
+    public String toString()
+    {
+        String ans = "{";
+        Node<T> cur = this.head;
+
+        while(cur != null)
+        {
+            ans += cur.data + ", ";
+            cur = cur.next;
+        }
+        return ans.substring(0, ans.length()-2)+"}";
     }
 
     private class Node<T>
