@@ -12,9 +12,19 @@ public class WeightedQ<T>
     {}
 
     //right now it replaces but keeps the same spot in the list
-    public void add(T tuple)
+    public void add(T tuple, double weight)
     {
-
+    	 Node new_node = new Node(tuple, weight); 
+    	 new_node.next = null;
+    	 if (head == null) { 
+    	     head = new_node;
+    	     tail = head;
+    	     head.prev = null;
+    	     return; 
+    	 }else {
+    		 tail.next =new_node;
+    		 tail = new_node;
+    	 }
     }
 
     public T extract()
