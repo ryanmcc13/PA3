@@ -20,7 +20,7 @@ public class WikiCrawler
     File robots;
     Boolean isTopicSensitive;
     ArrayList<String> visited;
-    WeightedQ q;
+    WeightedQ<String> q;
     String root;
     ArrayList<String> nonoList;
     int count;
@@ -35,13 +35,13 @@ public class WikiCrawler
         file = new File(filename);
         visited = new ArrayList<String>();
         visited.add(seedUrl);
-        q = new WeightedQ();
+        q = new WeightedQ<String>();
         q.add(seedUrl, 1);
         this.count =0;
     }
 
-    
-    
+
+
     public void crawl() throws IOException, InterruptedException
     {
     	Robots robot = new Robots();
@@ -68,14 +68,14 @@ public class WikiCrawler
     		}
     	}
     }
-    
-    
+
+
     public void parsePage(URL url) {
-    	try
-        { 
+        try
+        {
             InputStream is = url.openStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            String input; 
+            String input;
             while(!((input=br.readLine()).contains("<p>")))
             {}
             hasLink(input);
@@ -85,7 +85,7 @@ public class WikiCrawler
             if(isTopicSensitive) {
             	while((input=br.readLine())!=null)
                 {
-            		
+
                 }
         	}
             while((input=br.readLine())!=null)
@@ -140,9 +140,9 @@ public class WikiCrawler
             return;
         }
         for(int i = 0; i <nonoList.size(); i++) {
-        	if(trimmed.contains(nonoList.get(i))) {
-        		return;
-        	}
+            if(trimmed.contains(nonoList.get(i))) {
+                return;
+            }
         }
         if(trimmed.contains("/wiki/")) {
         	visited.add(trimmed);
@@ -160,7 +160,7 @@ public class WikiCrawler
             max--;
         }
     }
-    
+
     public double weight(String link, String anchor) {
     	if(keywords != null && keywords.length>0) {
     		for(int i = 0; i< keywords.length; i++) {

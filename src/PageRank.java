@@ -18,47 +18,24 @@ public class PageRank
 
     S[] degreeOutOrder;
 
-    Scanner scan;
-
     int numEdges;
 
     int n, t;
 
     public PageRank(String graphFile, double approximation, double teleportation)
     {
-        int i1, i2;
-        Node n1, n2;
-        try
-        {
-            this.scan = new Scanner(new File(graphFile));
-        }
-        catch(Exception e)
-        {
-            System.out.println("file not found");
-            return;
-        }
-        this.n = scan.nextInt();
-        this.graph = new Node[n];
-        while(scan.hasNext())
-        {
-            i1 = scan.nextInt()-1;
-            i2 = scan.nextInt()-1;
-            n1 = this.graph[i1];
-            n2 = this.graph[i2];
-            if(n1 == null)
-            {
-                n1 = new Node(i1);
-                this.graph[i1] = n1;
-            }
-            if(n2 == null)
-            {
-                n2 = new Node(i2);
-                this.graph[i2] = n2;
-            }
-            numEdges++;
-            n2.inDegree++;
-            n1.edges.add(n2);
-        }
+        readGraph(graphFile);
+        makeRank(approximation, teleportation);
+    }
+
+    public PageRank(Node[] graph, double approximation, double teleportation)
+    {
+        this.graph = graph;
+        makeRank(approximation, teleportation);
+    }
+
+    private void makeRank(double approximation, double teleportation)
+    {
         double[] p1 = new double[n];
         double[] p2;
         for(int i = 0; i < n; i++)
@@ -73,6 +50,46 @@ public class PageRank
             p2 = randomWalk(p1, teleportation);
         }
         pageRank = p1;
+    }
+
+    private void readGraph(String graphFile)
+    {
+        Scanner scan;
+        int i1, i2;
+        Node n1, n2;
+        try
+        {
+            scan = new Scanner(new File(graphFile));
+
+            this.n = scan.nextInt();
+            this.graph = new Node[n];
+            while(scan.hasNext())
+            {
+                i1 = scan.nextInt()-1;
+                i2 = scan.nextInt()-1;
+                n1 = this.graph[i1];
+                n2 = this.graph[i2];
+                if(n1 == null)
+                {
+                    n1 = new Node(i1);
+                    this.graph[i1] = n1;
+                }
+                if(n2 == null)
+                {
+                    n2 = new Node(i2);
+                    this.graph[i2] = n2;
+                }
+                numEdges++;
+                n2.inDegree++;
+                n1.edges.add(n2);
+            }
+            scan.close();
+        }
+        catch(Exception e)
+        {
+            System.out.println("file not found");
+            return;
+        }
     }
 
     public double[] randomWalk(double[] pn1, double teleportation)
@@ -234,16 +251,5 @@ public class PageRank
         // {
         //     return a instanceof Comp;
         // }
-    }
-
-    private class Node
-    {
-        int index;
-        int inDegree = 0;
-        ArrayList<Node> edges = new ArrayList<Node>();
-        public Node(int i)
-        {
-            this.index = i;
-        }
     }
 }

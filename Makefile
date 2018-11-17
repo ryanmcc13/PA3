@@ -1,6 +1,6 @@
-FILES=$(addprefix bin/, $(addsuffix .class, BFS Main MyWikiRanker PageRank SpamFarm WeightedQ WikiCrawler))
+FILES=$(addprefix bin/, $(addsuffix .class, BFS Main MyWikiRanker PageRank SpamFarm WeightedQ WikiCrawler Node))
 
-TEST=$(addprefix bin/, $(addsuffix .class, WeightedQTest PageRankTest))
+TEST=$(addprefix bin/, $(addsuffix .class, WeightedQTest PageRankTest SpamFarmTest))
 
 
 .PHONY: default makebin clean
