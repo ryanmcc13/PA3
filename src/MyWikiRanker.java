@@ -10,16 +10,18 @@ public class MyWikiRanker
     private static String filename = "crawl.txt";
     private static String tempfile = "temp.txt";
     private static Boolean isTopicSensitive = true;
+    private static Node[] nodes;
+    private static HashMap<Integer, String> rmap;
 
     public static void main(String[] args)
     {
         WikiCrawler crawl;
         Scanner scan;
         HashMap<String, Integer> map = new HashMap<String, Integer>();
-        HashMap<Integer, String> rmap = new HashMap<Integer, String>();
         String n1, n2;
-        Node[] nodes;
         int size, c = 0;
+
+        rmap = new HashMap<Integer, String>();
 
         if(args.length > 0)
         {
@@ -58,6 +60,19 @@ public class MyWikiRanker
         {
             e.printStackTrace();
         }
+    }
+
+    public static void rankPages()
+    {
+        int[][] top = new int[5][];
+        PageRank rank = new PageRank(nodes, .01, .85);
+        top[0] = rank.topKOutDegree(20);
+        top[1] = rank.topKInDegree(20);
+        top[2] = rank.topKPageRank(20);
+        rank = new PageRank(nodes, .005, .85);
+        top[3] = rank.topKPageRank(20);
+        rank = new PageRank(nodes, .001, .85);
+        top[4] = rank.topKPageRank(20);
     }
 
     public static void parseArgs(String[] args)

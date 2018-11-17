@@ -20,6 +20,7 @@ public class WikiCrawler
     File robots;
     Boolean isTopicSensitive;
     ArrayList<String> visited;
+    ArrayList<String> pageVisited;
     WeightedQ<String> q;
     String root;
     ArrayList<String> nonoList;
@@ -58,8 +59,9 @@ public class WikiCrawler
 		int requestCount = 1;
 		parsePage(url);
     	while(q.head!=null && max > 0) {
-    		root = (String) q.extract();
+    		root = q.extract();
             url = new URL(BASE_URL+root);
+            visited.add(BASE_URL+root);
     		parsePage(url);
     		requestCount++;
     		if(requestCount >= 10) {
@@ -76,6 +78,7 @@ public class WikiCrawler
             InputStream is = url.openStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
             String input;
+            pageVisited = new ArrayList<String>();
             while(!((input=br.readLine()).contains("<p>")))
             {}
             hasLink(input);
@@ -144,8 +147,8 @@ public class WikiCrawler
                 return;
             }
         }
-        if(trimmed.contains("/wiki/")) {
-        	visited.add(trimmed);
+        if(!pageVisited.contains(trimmed) && trimmed.startsWith("/wiki/")) {
+        	pageVisited.add(trimmed);
         	if(!isTopicSensitive) {
         		q.add(trimmed, 1);
         	}else {
@@ -156,7 +159,6 @@ public class WikiCrawler
             writer.write(root + " " + trimmed);
             writer.close();
             count++;
-            System.out.println(root + " " + trimmed+ " " + count);
             max--;
         }
     }
