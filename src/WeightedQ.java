@@ -21,6 +21,8 @@ public class WeightedQ<T>
             if(cur.weight >= weight)
             {
                 newNode.next = cur.next;
+                if(cur.next != null)
+                    cur.next.prev = newNode;
                 newNode.prev = cur;
                 cur.next = newNode;
                 break;
@@ -56,6 +58,8 @@ public class WeightedQ<T>
         this.head = this.head.next;
         if(this.head != null)
             this.head.prev = null;
+        else
+            this.tail = null;
         this.size--;
         return ans;
     }

@@ -14,7 +14,7 @@ public class PageRankTest
         }
         for(int i = 0; i < args.length; i++)
         {
-            p = new PageRank(args[i], .01, .85);
+            p = new PageRank(args[i], .01, .25);
             System.out.println(Arrays.toString(p.topKInDegree(10)));
             System.out.println(Arrays.toString(p.topKOutDegree(10)));
             System.out.println(Arrays.toString(p.topKPageRank(10)));

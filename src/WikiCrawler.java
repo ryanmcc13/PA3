@@ -9,6 +9,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class WikiCrawler
 {
@@ -18,15 +21,22 @@ public class WikiCrawler
     int max;
     File file;
     File robots;
-    Boolean isTopicSensitive;
+    Boolean isTopicSensitive, test = false;
     ArrayList<String> visited;
-    ArrayList<String> pageVisited;
+    HashMap<String, Boolean> nodes = new HashMap<String,Boolean>();
     WeightedQ<String> q;
     String root;
     ArrayList<String> nonoList;
+    Pattern paragraph = Pattern.compile("<p>(.*)");
+    Pattern html = Pattern.compile("<[^/a].*?>(.*?)</[^a].*?>");
+    Pattern badAnchor = Pattern.compile("<a href=\"(?!/wiki/).*?</a>");
+    Pattern tokens = Pattern.compile("(?:[\\w-]+)|(?:<a.*?/a>)");
+    Pattern anchor = Pattern.compile("<a href=\"(.*?)\".*?>(.*?)</a>");
     int count;
-    String[][] words;
+    BufferedWriter writer;
     public static final String BASE_URL="https://en.wikipedia.org";
+
+
     public WikiCrawler (String seedUrl, String[] keywords, int max, String filename, Boolean isTopicSensitive)
     {
         this.isTopicSensitive=isTopicSensitive;
@@ -35,40 +45,48 @@ public class WikiCrawler
         this.max=max;
         file = new File(filename);
         visited = new ArrayList<String>();
-        visited.add(seedUrl);
         q = new WeightedQ<String>();
-        q.add(seedUrl, 1);
-        this.count =0;
+        nodes.put(seedUrl, true);
+        q.add(seedUrl, 0);
+        this.count = 0;
     }
 
 
 
-    public void crawl() throws IOException, InterruptedException
+    public void crawl()
     {
-    	Robots robot = new Robots();
-    	nonoList = robot.parseRobots();
-    	//testing
-//    	nonoList = new ArrayList<String>();
-//    	nonoList.add("/wiki/Tennis_court");
-    	BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-    	writer.write(String.valueOf(max));
-    	writer.close();
-    	System.out.println(max);
-		root = seedUrl;
-		URL url = new URL(BASE_URL+seedUrl);
-		int requestCount = 1;
-		parsePage(url);
-    	while(q.head!=null && max > 0) {
-    		root = q.extract();
-            url = new URL(BASE_URL+root);
-            visited.add(BASE_URL+root);
-    		parsePage(url);
-    		requestCount++;
-    		if(requestCount >= 10) {
-    			Thread.sleep(2000);
-    			requestCount = 0;
-    		}
-    	}
+        try
+        {
+            Robots robot = new Robots();
+            nonoList = robot.parseRobots();
+            writer = new BufferedWriter(new FileWriter(file));
+            writer.write(max--+"\n");
+            URL url;
+            int requestCount = 1;
+
+            while(q.head!=null && max > 0)
+            {
+                root = q.extract();
+                while(visited.contains(root))
+                {
+                    root = q.extract();
+                }
+                url = new URL(BASE_URL+root);
+                visited.add(root);
+                parsePage(url);
+                if(requestCount%10 == 0) {
+                    Thread.sleep(2000);
+                    requestCount = 0;
+                }
+                requestCount++;
+            }
+            writer.close();
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+            System.exit(-1);
+        }
     }
 
 
@@ -76,26 +94,95 @@ public class WikiCrawler
         try
         {
             InputStream is = url.openStream();
+            ArrayList<String> toks = new ArrayList<String>();
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            String input;
-            pageVisited = new ArrayList<String>();
-            while(!((input=br.readLine()).contains("<p>")))
-            {}
-            hasLink(input);
-            if(max == 0) {
-            	return;
-            }
-            if(isTopicSensitive) {
-            	while((input=br.readLine())!=null)
-                {
-
-                }
-        	}
-            while((input=br.readLine())!=null)
+            String input = "", temp;
+            Matcher m, m2, m3;
+            int mult;
+            double weight = 0;
+            boolean found = false;
+            ArrayList<String> pageVisited = new ArrayList<String>();
+            //reads the input
+            while((temp=br.readLine()) != null)
             {
-                hasLink(input);
-                if(max == 0) {
-                	return;
+                m = paragraph.matcher(temp);
+                while(m.find())
+                {
+                    input += m.group(1);
+                }
+            }
+            m = html.matcher(input);
+            input = m.replaceAll("$1");
+            m = badAnchor.matcher(input);
+            input = m.replaceAll("");
+            if(test)
+            {
+                System.out.println(input);
+                test = false;
+            }
+            m = tokens.matcher(input);
+            while(m.find())
+            {
+                toks.add(m.group());
+            }
+
+            for(int i = 0; i < toks.size() && max > 0; i++)
+            {
+                weight = 0;
+                m = anchor.matcher(toks.get(i));
+                if(m.find() && !nonoList.contains(m.group(1)) && !pageVisited.contains(m.group(1)))
+                {
+                    if(isTopicSensitive)
+                    {
+                        for(int k = 0; k < keywords.length; k++)
+                        {
+                            if(m.group(2).toLowerCase().contains(keywords[k].toLowerCase()) || m.group(1).contains(keywords[k]))
+                            {
+                                weight = 1;
+                                break;
+                            }
+                            found = false;
+                            for(int j = 17; j > 0; j--)
+                            {
+                                m2 = tokens.matcher(keywords[k]);
+                                m2.find();
+                                if(i + j > 0 && i + j < toks.size() && toks.get(i+j).equalsIgnoreCase(m2.group()))
+                                {
+                                    found = true;
+                                    mult = 0;
+                                    while(m2.find() && i+j+mult < toks.size() && i+j+mult > 0)
+                                    {
+                                        found = toks.get(i+j+mult).equalsIgnoreCase(m2.group());
+                                        mult++;
+                                    }
+                                    if(found)
+                                        weight = 1/(j+2) > weight ? 1/(j+2):weight;
+                                }
+                                m2 = tokens.matcher(keywords[k]);
+                                m2.find();
+                                if(i - j > 0 && i - j < toks.size() && toks.get(i-j).equalsIgnoreCase(m2.group()))
+                                {
+                                    found = true;
+                                    mult = 0;
+                                    while(m2.find() && i-j+mult > 0 && i-j+mult > 0)
+                                    {
+                                        found = toks.get(i-j+mult).equalsIgnoreCase(m2.group());
+                                        mult++;
+                                    }
+                                    if(found)
+                                        weight = 1l/((double)j+2) > weight ? 1l/((double)j+2):weight;
+                                }
+                            }
+                        }
+                    }
+                    q.add(m.group(1), weight);
+                    pageVisited.add(m.group(1));
+                    if(nodes.get(m.group(1))==null)
+                    {
+                        nodes.put(m.group(1), true);
+                        max--;
+                    }
+                    writer.write(root + " " + m.group(1) + "\n");
                 }
             }
         }
@@ -103,87 +190,7 @@ public class WikiCrawler
         {
             // TODO Auto-generated catch block
             e.printStackTrace();
+            System.exit(-1);
         }
     }
-
-    public void findP(BufferedReader br) throws IOException
-    {
-        String input;
-        while(!((input=br.readLine()).contains("<p>")))
-        {
-
-        }
-        hasLink(input);
-    }
-
-    public void hasLink(String line) throws IOException
-    {
-        if(line.contains("<a href="))
-        {
-            String[] arr = line.split("<a href=\"");
-            for(int i=1;i<arr.length;i++)
-            {
-                if(arr[i].contains("/wiki/"))
-                {
-                    isolateText(arr[i]);
-                }
-                if(max == 0) {
-                	return;
-                }
-            }
-        }
-    }
-
-    public void isolateText(String s) throws IOException
-    {
-    	String[] text = s.split("\"");
-    	String trimmed = text[0];
-        if(trimmed.contains("#") || trimmed.contains(":") || trimmed.equals(root))
-        {
-            return;
-        }
-        for(int i = 0; i <nonoList.size(); i++) {
-            if(trimmed.contains(nonoList.get(i))) {
-                return;
-            }
-        }
-        if(!pageVisited.contains(trimmed) && trimmed.startsWith("/wiki/")) {
-        	pageVisited.add(trimmed);
-        	if(!isTopicSensitive) {
-        		q.add(trimmed, 1);
-        	}else {
-        		q.add(trimmed, weight(trimmed, text[2]));
-        	}
-            BufferedWriter writer = new BufferedWriter(new FileWriter(file,true));
-            writer.newLine();
-            writer.write(root + " " + trimmed);
-            writer.close();
-            count++;
-            max--;
-        }
-    }
-
-    public double weight(String link, String anchor) {
-    	if(keywords != null && keywords.length>0) {
-    		for(int i = 0; i< keywords.length; i++) {
-    			if(link.contains(keywords[i])||anchor.contains(keywords[i])) {
-    				return 1;
-    			}
-    		}
-    		//assuming global variable 2d string array called words
-    		int d;
-    		for(int i = 0; i < 18; i++) {
-    			for(int j = 0; j< keywords.length; j++) {
-    				if(words[i][0].contains(keywords[j])){
-    					return (1/(i+2));
-    					//2nd dimension of 2d array starts with 1 so they don't overlap
-    				}else if(words[0][i + 1].contains(keywords[j])){
-    					return (1/(i+2));
-    				}
-    			}
-    		}
-    	}
-    	return 0;
-    }
-
 }

@@ -5,6 +5,7 @@ import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class PageRank
 {
@@ -20,7 +21,7 @@ public class PageRank
 
     int numEdges;
 
-    int n, t;
+    int n;
 
     public PageRank(String graphFile, double approximation, double teleportation)
     {
@@ -31,6 +32,7 @@ public class PageRank
     public PageRank(Node[] graph, double approximation, double teleportation)
     {
         this.graph = graph;
+        this.n = graph.length;
         makeRank(approximation, teleportation);
     }
 
@@ -42,7 +44,6 @@ public class PageRank
         {
             p1[i] = 1/n;
         }
-        t = 0;
         p2 = randomWalk(p1, teleportation);
         while(norm(p1, p2) > approximation)
         {
